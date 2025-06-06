@@ -188,7 +188,7 @@ elif args.mode in ["encrypt", "decrypt"]:
             exit()
     else:
         if not args.text or not args.key:
-            print("Error: --text and --key are required for symmetric algorithms.")
+            print("Error: --text and --key are required.")
             exit()
 
     try:
