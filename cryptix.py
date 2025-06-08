@@ -145,7 +145,7 @@ def encrypt_file(file, key, algo):
         enc_text = encrypt_des(text, key)
     elif algo == "rsa":
         enc_text = encrypt_rsa(text, key)
-    write_file(args.file+"_enc"+f"_{algo}", enc_text)
+    write_file(file+"_enc"+f"_{algo}", enc_text)
     print(f"Encrypted file saved to {file+"_enc"+f"_{algo}"}")
 
 def decrypt_file(file, key, algo):
@@ -156,7 +156,7 @@ def decrypt_file(file, key, algo):
         dec_text = decrypt_des(text, key)
     elif algo == "rsa":
         dec_text = decrypt_rsa(text, key)
-    write_file(args.file+"_dec"+f"_{algo}", dec_text)
+    write_file(file+"_dec"+f"_{algo}", dec_text)
     print(f"Decrypted file saved to {file+"_dec"+f"_{algo}"}")
 
 # =================== CLI Parser ===================
