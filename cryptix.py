@@ -4,8 +4,8 @@ import argparse
 from cryptography.fernet import Fernet
 
 # DES
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
+from Crypto.Cipher import DES
+from Crypto.Util.Padding import pad, unpad
 
 # RSA
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -107,60 +107,64 @@ def decrypt_rsa(cipher_b64, private_pem):
 
 def generate_key_des():
     """
-    Generate a random 8-byte DES key (returned as hex).
+    Generate an 8-byte DES key (hex).
     """
     return os.urandom(8).hex()
 
 def encrypt_des(text, key_hex):
-    """
-    Encrypt plain text using DES with ECB mode.
-    :param text: Plain text to encrypt
-    :param key_hex: 8-byte key in hex format
-    :return: Encrypted hex string
-    """
     key = bytes.fromhex(key_hex)
-    cipher = Cipher(algorithms.DES(key), modes.ECB(), backend=default_backend())
-    encryptor = cipher.encryptor()
-    padded = pad(text.encode())
-    ct = encryptor.update(padded) + encryptor.finalize()
+    cipher = DES.new(key, DES.MODE_ECB)
+    padded_text = pad(text.encode(), 8)
+    ct = cipher.encrypt(padded_text)
     return ct.hex()
 
 def decrypt_des(ciphertext_hex, key_hex):
-    """
-    Decrypt DES encrypted hex string.
-    :param ciphertext_hex: Encrypted hex string
-    :param key_hex: 8-byte key in hex format
-    :return: Decrypted plain text
-    """
     key = bytes.fromhex(key_hex)
+    cipher = DES.new(key, DES.MODE_ECB)
     ct = bytes.fromhex(ciphertext_hex)
-    cipher = Cipher(algorithms.DES(key), modes.ECB(), backend=default_backend())
-    decryptor = cipher.decryptor()
-    padded = decryptor.update(ct) + decryptor.finalize()
-    return unpad(padded).decode()
+    pt = unpad(cipher.decrypt(ct), 8)
+    return pt.decode()
 
-def pad(data):
-    """
-    Pad data to make it a multiple of 8 bytes (DES block size).
-    :param data: Byte string
-    :return: Padded byte string
-    """
-    pad_len = 8 - (len(data) % 8)
-    return data + bytes([pad_len] * pad_len)
+# =================== FILE OPS ===================
 
-def unpad(data):
-    """
-    Remove padding added to DES encrypted data.
-    :param data: Padded byte string
-    :return: Original byte string
-    """
-    return data[:-data[-1]]
+def read_file(file):
+    with open(file, "r") as file:
+        return file.read()
+    
+def write_file(file, content):
+    with open(file, "w") as file:
+        file.write(content)
+
+# =================== CLI Parser ===================
+
+def encrypt_file(file, key, algo):
+    text = read_file(file)
+    if algo == "aes":
+        enc_text = encrypt_aes(text, key)
+    elif algo == "des":
+        enc_text = encrypt_des(text, key)
+    elif algo == "rsa":
+        enc_text = encrypt_rsa(text, key)
+    write_file(args.file+"_enc"+f"_{algo}", enc_text)
+    print(f"Encrypted file saved to {file+"_enc"+f"_{algo}"}")
+
+def decrypt_file(file, key, algo):
+    text = read_file(file)
+    if algo == "aes":
+        dec_text = decrypt_aes(text, key)
+    elif algo == "des":
+        dec_text = decrypt_des(text, key)
+    elif algo == "rsa":
+        dec_text = decrypt_rsa(text, key)
+    write_file(args.file+"_dec"+f"_{algo}", dec_text)
+    print(f"Decrypted file saved to {file+"_dec"+f"_{algo}"}")
 
 # =================== CLI Parser ===================
 
 parser = argparse.ArgumentParser(description="Encrypt/Decrypt Tool")
 parser.add_argument("mode", choices=["encrypt", "decrypt", "genkey"], help="Operation mode")
 parser.add_argument("--text", help="Text to encrypt or decrypt")
+parser.add_argument("--file", help="File to encrypt or decrypt")
 parser.add_argument("--algo", required=True, choices=["aes", "des", "rsa"], help="Encryption algorithm to use")
 parser.add_argument("--key", help="Key used for encryption/decryption")
 
@@ -187,24 +191,42 @@ elif args.mode in ["encrypt", "decrypt"]:
             print("Error: RSA decryption requires private key via --key")
             exit()
     else:
-        if not args.text or not args.key:
-            print("Error: --text and --key are required.")
+        if not (args.text or args.file) or not args.key:
+            print("Error: Either --text or --file and --key are required.")
             exit()
 
     try:
         if args.mode == "encrypt":
             if args.algo == "aes":
-                print("Encrypted:", encrypt_aes(args.text, args.key))
+                if args.file:
+                    encrypt_file(args.file, args.key, args.algo)
+                else:
+                    print("Encrypted:", encrypt_aes(args.text, args.key))
             elif args.algo == "des":
-                print("Encrypted:", encrypt_des(args.text, args.key))
+                if args.file:
+                    encrypt_file(args.file, args.key, args.algo)
+                else:
+                    print("Encrypted:", encrypt_des(args.text, args.key))
             elif args.algo == "rsa":
-                print("Encrypted:", encrypt_rsa(args.text, args.key))
+                if args.file:
+                    encrypt_file(args.file, args.key, args.algo)
+                else:
+                    print("Encrypted:", encrypt_rsa(args.text, args.key))
         else:
             if args.algo == "aes":
-                print("Decrypted:", decrypt_aes(args.text, args.key))
+                if args.file:
+                    decrypt_file(args.file, args.key, args.algo)
+                else:
+                    print("Decrypted:", decrypt_aes(args.text, args.key))
             elif args.algo == "des":
-                print("Decrypted:", decrypt_des(args.text, args.key))
+                if args.file:
+                    decrypt_file(args.file, args.key, args.algo)
+                else:
+                    print("Decrypted:", decrypt_des(args.text, args.key))
             elif args.algo == "rsa":
-                print("Decrypted:", decrypt_rsa(args.text, args.key))
+                if args.file:
+                    decrypt_file(args.file, args.key, args.algo)
+                else:
+                    print("Decrypted:", decrypt_rsa(args.text, args.key))
     except Exception as e:
         print("Error:", e)
