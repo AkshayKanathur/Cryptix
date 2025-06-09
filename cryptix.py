@@ -4,8 +4,8 @@ import argparse
 from cryptography.fernet import Fernet
 
 # DES
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
+from Crypto.Cipher import DES
+from Crypto.Util.Padding import pad, unpad
 
 # RSA
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -107,54 +107,23 @@ def decrypt_rsa(cipher_b64, private_pem):
 
 def generate_key_des():
     """
-    Generate a random 8-byte DES key (returned as hex).
+    Generate an 8-byte DES key (hex).
     """
     return os.urandom(8).hex()
 
 def encrypt_des(text, key_hex):
-    """
-    Encrypt plain text using DES with ECB mode.
-    :param text: Plain text to encrypt
-    :param key_hex: 8-byte key in hex format
-    :return: Encrypted hex string
-    """
     key = bytes.fromhex(key_hex)
-    cipher = Cipher(algorithms.DES(key), modes.ECB(), backend=default_backend())
-    encryptor = cipher.encryptor()
-    padded = pad(text.encode())
-    ct = encryptor.update(padded) + encryptor.finalize()
+    cipher = DES.new(key, DES.MODE_ECB)
+    padded_text = pad(text.encode(), 8)
+    ct = cipher.encrypt(padded_text)
     return ct.hex()
 
 def decrypt_des(ciphertext_hex, key_hex):
-    """
-    Decrypt DES encrypted hex string.
-    :param ciphertext_hex: Encrypted hex string
-    :param key_hex: 8-byte key in hex format
-    :return: Decrypted plain text
-    """
     key = bytes.fromhex(key_hex)
+    cipher = DES.new(key, DES.MODE_ECB)
     ct = bytes.fromhex(ciphertext_hex)
-    cipher = Cipher(algorithms.DES(key), modes.ECB(), backend=default_backend())
-    decryptor = cipher.decryptor()
-    padded = decryptor.update(ct) + decryptor.finalize()
-    return unpad(padded).decode()
-
-def pad(data):
-    """
-    Pad data to make it a multiple of 8 bytes (DES block size).
-    :param data: Byte string
-    :return: Padded byte string
-    """
-    pad_len = 8 - (len(data) % 8)
-    return data + bytes([pad_len] * pad_len)
-
-def unpad(data):
-    """
-    Remove padding added to DES encrypted data.
-    :param data: Padded byte string
-    :return: Original byte string
-    """
-    return data[:-data[-1]]
+    pt = unpad(cipher.decrypt(ct), 8)
+    return pt.decode()
 
 # =================== CLI Parser ===================
 
