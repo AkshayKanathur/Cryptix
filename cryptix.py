@@ -135,7 +135,7 @@ def write_file(file, content):
     with open(file, "w") as file:
         file.write(content)
 
-# =================== FILE ENC DEF ===================
+# =================== FILE ENC DEC ===================
 
 def encrypt_file(file, key, algo):
     text = read_file(file)
