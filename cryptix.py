@@ -138,26 +138,32 @@ def write_file(file, content):
 # =================== FILE ENC DEC ===================
 
 def encrypt_file(file, key, algo):
-    text = read_file(file)
+    text = read_file(file)  # returns string
+
     if algo == "aes":
         enc_text = encrypt_aes(text, key)
     elif algo == "des":
         enc_text = encrypt_des(text, key)
     elif algo == "rsa":
         enc_text = encrypt_rsa(text, key)
-    write_file(file+"_enc"+f"_{algo}", enc_text)
-    print(f"Encrypted file saved to {file+"_enc"+f"_{algo}"}")
+
+    out_file = file.replace("_dec_" + algo, "").replace("_enc_" + algo, "") + f"_enc_{algo}"
+    write_file(out_file, enc_text)
+    print(f"Encrypted file saved to {out_file}")
 
 def decrypt_file(file, key, algo):
     text = read_file(file)
+
     if algo == "aes":
         dec_text = decrypt_aes(text, key)
     elif algo == "des":
         dec_text = decrypt_des(text, key)
     elif algo == "rsa":
         dec_text = decrypt_rsa(text, key)
-    write_file(file+"_dec"+f"_{algo}", dec_text)
-    print(f"Decrypted file saved to {file+"_dec"+f"_{algo}"}")
+
+    out_file = file.replace("_dec_" + algo, "").replace("_enc_" + algo, "") + f"_dec_{algo}"
+    write_file(out_file, dec_text)
+    print(f"Decrypted file saved to {out_file}")
 
 # =================== CLI Parser ===================
 
