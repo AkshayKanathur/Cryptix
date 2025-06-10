@@ -1,4 +1,5 @@
 import argparse
+from binaryornot.check import is_binary, is_binary_string
 
 # AES
 from cryptography.fernet import Fernet
@@ -196,9 +197,15 @@ elif args.mode in ["encrypt", "decrypt"]:
         elif args.mode == "decrypt" and not args.key:
             print("Error: RSA decryption requires private key via --key")
             exit()
+        elif is_binary(args.file or args.text):
+            print("Error: Binary file/string not supported.")
+            exit()
     else:
         if not (args.text or args.file) or not args.key:
             print("Error: Either --text or --file and --key are required.")
+            exit()
+        elif is_binary(args.file or args.text):
+            print("Error: Binary file/string not supported.")
             exit()
 
     try:
