@@ -1,5 +1,5 @@
 import argparse
-from binaryornot.check import is_binary, is_binary_string
+from binaryornot.check import is_binary
 
 # AES
 from cryptography.fernet import Fernet
