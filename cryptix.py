@@ -1,4 +1,5 @@
 import argparse
+from binaryornot.check import is_binary
 
 # AES
 from cryptography.fernet import Fernet
@@ -125,11 +126,52 @@ def decrypt_des(ciphertext_hex, key_hex):
     pt = unpad(cipher.decrypt(ct), 8)
     return pt.decode()
 
+# =================== FILE OPS ===================
+
+def read_file(file):
+    with open(file, "r") as file:
+        return file.read()
+    
+def write_file(file, content):
+    with open(file, "w") as file:
+        file.write(content)
+
+# =================== FILE ENC DEC ===================
+
+def encrypt_file(file, key, algo):
+    text = read_file(file)  # returns string
+
+    if algo == "aes":
+        enc_text = encrypt_aes(text, key)
+    elif algo == "des":
+        enc_text = encrypt_des(text, key)
+    elif algo == "rsa":
+        enc_text = encrypt_rsa(text, key)
+
+    out_file = file.replace("_dec_" + algo, "").replace("_enc_" + algo, "") + f"_enc_{algo}"
+    write_file(out_file, enc_text)
+    print(f"Encrypted file saved to {out_file}")
+
+def decrypt_file(file, key, algo):
+    text = read_file(file)
+
+    if algo == "aes":
+        dec_text = decrypt_aes(text, key)
+    elif algo == "des":
+        dec_text = decrypt_des(text, key)
+    elif algo == "rsa":
+        dec_text = decrypt_rsa(text, key)
+
+    out_file = file.replace("_dec_" + algo, "").replace("_enc_" + algo, "") + f"_dec_{algo}"
+    write_file(out_file, dec_text)
+    print(f"Decrypted file saved to {out_file}")
+
 # =================== CLI Parser ===================
 
 parser = argparse.ArgumentParser(description="Encrypt/Decrypt Tool")
 parser.add_argument("mode", choices=["encrypt", "decrypt", "genkey"], help="Operation mode")
 parser.add_argument("--text", help="Text to encrypt or decrypt")
+parser.add_argument("--file", help="File to encrypt or decrypt")
 parser.add_argument("--algo", required=True, choices=["aes", "des", "rsa"], help="Encryption algorithm to use")
 parser.add_argument("--key", help="Key used for encryption/decryption")
 
@@ -155,25 +197,49 @@ elif args.mode in ["encrypt", "decrypt"]:
         elif args.mode == "decrypt" and not args.key:
             print("Error: RSA decryption requires private key via --key")
             exit()
+        elif args.file and is_binary(args.file):
+            print("Error: Binary file not supported.")
+            exit()
     else:
-        if not args.text or not args.key:
-            print("Error: --text and --key are required.")
+        if not (args.text or args.file) or not args.key:
+            print("Error: Either --text or --file and --key are required.")
+            exit()
+        elif args.file and is_binary(args.file):
+            print("Error: Binary file not supported.")
             exit()
 
     try:
         if args.mode == "encrypt":
             if args.algo == "aes":
-                print("Encrypted:", encrypt_aes(args.text, args.key))
+                if args.file:
+                    encrypt_file(args.file, args.key, args.algo)
+                else:
+                    print("Encrypted:", encrypt_aes(args.text, args.key))
             elif args.algo == "des":
-                print("Encrypted:", encrypt_des(args.text, args.key))
+                if args.file:
+                    encrypt_file(args.file, args.key, args.algo)
+                else:
+                    print("Encrypted:", encrypt_des(args.text, args.key))
             elif args.algo == "rsa":
-                print("Encrypted:", encrypt_rsa(args.text, args.key))
+                if args.file:
+                    encrypt_file(args.file, args.key, args.algo)
+                else:
+                    print("Encrypted:", encrypt_rsa(args.text, args.key))
         else:
             if args.algo == "aes":
-                print("Decrypted:", decrypt_aes(args.text, args.key))
+                if args.file:
+                    decrypt_file(args.file, args.key, args.algo)
+                else:
+                    print("Decrypted:", decrypt_aes(args.text, args.key))
             elif args.algo == "des":
-                print("Decrypted:", decrypt_des(args.text, args.key))
+                if args.file:
+                    decrypt_file(args.file, args.key, args.algo)
+                else:
+                    print("Decrypted:", decrypt_des(args.text, args.key))
             elif args.algo == "rsa":
-                print("Decrypted:", decrypt_rsa(args.text, args.key))
+                if args.file:
+                    decrypt_file(args.file, args.key, args.algo)
+                else:
+                    print("Decrypted:", decrypt_rsa(args.text, args.key))
     except Exception as e:
         print("Error:", e)
