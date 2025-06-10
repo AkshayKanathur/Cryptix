@@ -197,14 +197,14 @@ elif args.mode in ["encrypt", "decrypt"]:
         elif args.mode == "decrypt" and not args.key:
             print("Error: RSA decryption requires private key via --key")
             exit()
-        elif is_binary(args.file):
+        elif args.file and is_binary(args.file):
             print("Error: Binary file not supported.")
             exit()
     else:
         if not (args.text or args.file) or not args.key:
             print("Error: Either --text or --file and --key are required.")
             exit()
-        elif is_binary(args.file):
+        elif args.file and is_binary(args.file):
             print("Error: Binary file not supported.")
             exit()
 
