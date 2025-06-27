@@ -9,11 +9,51 @@ from cryptography.fernet import Fernet
 from Crypto.Cipher import DES
 from Crypto.Util.Padding import pad, unpad
 
+# Blowfish
+from Crypto.Cipher import Blowfish
+
 # RSA
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 import base64
 import os
+
+# ================= AES =================
+
+def generate_key_blowfish():
+    """
+    Generate a Blowfish key (16 bytes recommended, base64 encoded).
+    """
+    return base64.b64encode(os.urandom(16)).decode()
+
+def encrypt_blowfish(text, key_b64):
+    """
+    Encrypt a string using Blowfish (CBC mode).
+    :param text: Plain text to encrypt
+    :param key_b64: Blowfish key (base64 encoded)
+    :return: Encrypted text (base64 encoded)
+    """
+    key = base64.b64decode(key_b64)
+    cipher = Blowfish.new(key, Blowfish.MODE_CBC)
+    iv = cipher.iv
+    padded = pad(text.encode(), Blowfish.block_size)
+    encrypted = cipher.encrypt(padded)
+    return base64.b64encode(iv + encrypted).decode()
+
+def decrypt_blowfish(cipher_b64, key_b64):
+    """
+    Decrypt a Blowfish encrypted string.
+    :param cipher_b64: Encrypted text (base64 encoded)
+    :param key_b64: Blowfish key (base64 encoded)
+    :return: Decrypted plain text
+    """
+    key = base64.b64decode(key_b64)
+    data = base64.b64decode(cipher_b64)
+    iv = data[:8]
+    encrypted = data[8:]
+    cipher = Blowfish.new(key, Blowfish.MODE_CBC, iv)
+    decrypted = unpad(cipher.decrypt(encrypted), Blowfish.block_size)
+    return decrypted.decode()
 
 # ================= AES =================
 
@@ -148,6 +188,8 @@ def encrypt_file(file, key, algo):
         enc_text = encrypt_des(text, key)
     elif algo == "rsa":
         enc_text = encrypt_rsa(text, key)
+    elif algo == "blowfish":
+        enc_text = encrypt_blowfish(text, key)
 
     out_file = file.replace("_dec_" + algo, "").replace("_enc_" + algo, "") + f"_enc_{algo}"
     write_file(out_file, enc_text)
@@ -162,6 +204,8 @@ def decrypt_file(file, key, algo):
         dec_text = decrypt_des(text, key)
     elif algo == "rsa":
         dec_text = decrypt_rsa(text, key)
+    elif algo == "blowfish":
+        dec_text = decrypt_blowfish(text, key)
 
     out_file = file.replace("_dec_" + algo, "").replace("_enc_" + algo, "") + f"_dec_{algo}"
     write_file(out_file, dec_text)
@@ -173,7 +217,7 @@ parser = argparse.ArgumentParser(description="Encrypt/Decrypt Tool")
 parser.add_argument("mode", choices=["encrypt", "decrypt", "genkey"], help="Operation mode")
 parser.add_argument("--text", help="Text to encrypt or decrypt")
 parser.add_argument("--file", help="File to encrypt or decrypt")
-parser.add_argument("--algo", required=True, choices=["aes", "des", "rsa"], help="Encryption algorithm to use")
+parser.add_argument("--algo", required=True, choices=["aes", "des", "rsa", "blowfish"], help="Encryption algorithm to use")
 parser.add_argument("--key", help="Key used for encryption/decryption")
 
 args = parser.parse_args()
@@ -189,6 +233,13 @@ if args.mode == "genkey":
             print("Key copied to clipboard")
     elif args.algo == "des":
         key = generate_key_des()
+        print("Generated Key:", key)
+        choice = input("Do you want to copy the key to clipboard? [y/n] ")
+        if choice.upper() == "Y":
+            pyperclip.copy(key)
+            print("Key copied to clipboard")
+    elif args.algo == "blowfish":
+        key = generate_key_blowfish()
         print("Generated Key:", key)
         choice = input("Do you want to copy the key to clipboard? [y/n] ")
         if choice.upper() == "Y":
@@ -261,6 +312,17 @@ elif args.mode in ["encrypt", "decrypt"]:
                     if choice == "Y":
                         pyperclip.copy(cipher_text)
                         print("Encrypted text copied to clipboard")
+            elif args.algo == "blowfish":
+                if args.file:
+                    encrypt_file(args.file, args.key, args.algo)
+                else:
+                    cipher_text = encrypt_blowfish(args.text, args.key)
+                    print("Encrypted:", cipher_text)
+                    choice = input("Do you want to copy the encrypted text? [y/n] ").upper()
+                    if choice == "Y":
+                        pyperclip.copy(cipher_text)
+                        print("Encrypted text copied to clipboard")
+
         else:
             if args.algo == "aes":
                 if args.file:
@@ -287,6 +349,16 @@ elif args.mode in ["encrypt", "decrypt"]:
                     decrypt_file(args.file, args.key, args.algo)
                 else:
                     plain_text = decrypt_rsa(args.text, args.key)
+                    print("Decrypted:", plain_text)
+                    choice = input("Do you want to copy the decrypted text? [y/n] ").upper()
+                    if choice == "Y":
+                        pyperclip.copy(plain_text)
+                        print("Decrypted text copied to clipboard")
+            elif args.algo == "blowfish":
+                if args.file:
+                    decrypt_file(args.file, args.key, args.algo)
+                else:
+                    plain_text = decrypt_blowfish(args.text, args.key)
                     print("Decrypted:", plain_text)
                     choice = input("Do you want to copy the decrypted text? [y/n] ").upper()
                     if choice == "Y":
