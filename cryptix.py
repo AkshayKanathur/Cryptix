@@ -18,7 +18,7 @@ from cryptography.hazmat.primitives import serialization, hashes
 import base64
 import os
 
-# ================= AES =================
+# ================= Blowfish =================
 
 def generate_key_blowfish():
     """
