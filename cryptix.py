@@ -211,6 +211,14 @@ def decrypt_file(file, key, algo):
     write_file(out_file, dec_text)
     print(f"Decrypted file saved to {out_file}")
 
+# =================== Helper functions ===================
+
+def copy_text(text1, text2):
+    choice = input('Do you want to copy to the clipboard? [y/n] ')
+    if choice.upper() == 'Y':
+        pyperclip.copy(text1)
+        print(f'{text2} copied to the clipboard')
+
 # =================== CLI Parser ===================
 
 parser = argparse.ArgumentParser(description="Encrypt/Decrypt Tool")
@@ -227,24 +235,15 @@ if args.mode == "genkey":
     if args.algo == "aes":
         key = generate_key_aes()
         print("Generated Key:", key)
-        choice = input("Do you want to copy the key to clipboard? [y/n] ")
-        if choice.upper() == "Y":
-            pyperclip.copy(key)
-            print("Key copied to clipboard")
+        copy_text(key, 'Key')
     elif args.algo == "des":
         key = generate_key_des()
         print("Generated Key:", key)
-        choice = input("Do you want to copy the key to clipboard? [y/n] ")
-        if choice.upper() == "Y":
-            pyperclip.copy(key)
-            print("Key copied to clipboard")
+        copy_text(key, 'Key')
     elif args.algo == "blowfish":
         key = generate_key_blowfish()
         print("Generated Key:", key)
-        choice = input("Do you want to copy the key to clipboard? [y/n] ")
-        if choice.upper() == "Y":
-            pyperclip.copy(key)
-            print("Key copied to clipboard")
+        copy_text(key, 'Key')
     elif args.algo == "rsa":
         priv, pub = generate_key_rsa()
         print("Private Key:\n", priv)
@@ -287,42 +286,28 @@ elif args.mode in ["encrypt", "decrypt"]:
                 else:
                     cipher_text = encrypt_aes(args.text, args.key)
                     print("Encrypted:", cipher_text)
-                    choice = input("Do you want to copy the encrypted text? [y/n] ").upper()
-                    if choice == "Y":
-                        pyperclip.copy(cipher_text)
-                        print("Encrypted text copied to clipboard")
+                    copy_text(cipher_text, 'Encrypted text')
             elif args.algo == "des":
                 if args.file:
                     encrypt_file(args.file, args.key, args.algo)
                 else:
                     cipher_text = encrypt_des(args.text, args.key)
                     print("Encrypted:", cipher_text)
-                    choice = input("Do you want to copy the encrypted text? [y/n] ").upper()
-                    if choice == "Y":
-                        pyperclip.copy(cipher_text)
-                        print("Encrypted text copied to clipboard")
-                        
+                    copy_text(cipher_text, 'Encrypted text')
             elif args.algo == "rsa":
                 if args.file:
                     encrypt_file(args.file, args.key, args.algo)
                 else:
                     cipher_text = encrypt_rsa(args.text, args.key)
                     print("Encrypted:", cipher_text)
-                    choice = input("Do you want to copy the encrypted text? [y/n] ").upper()
-                    if choice == "Y":
-                        pyperclip.copy(cipher_text)
-                        print("Encrypted text copied to clipboard")
+                    copy_text(cipher_text, 'Encrypted text')
             elif args.algo == "blowfish":
                 if args.file:
                     encrypt_file(args.file, args.key, args.algo)
                 else:
                     cipher_text = encrypt_blowfish(args.text, args.key)
                     print("Encrypted:", cipher_text)
-                    choice = input("Do you want to copy the encrypted text? [y/n] ").upper()
-                    if choice == "Y":
-                        pyperclip.copy(cipher_text)
-                        print("Encrypted text copied to clipboard")
-
+                    copy_text(cipher_text, 'Encrypted text')
         else:
             if args.algo == "aes":
                 if args.file:
@@ -330,39 +315,27 @@ elif args.mode in ["encrypt", "decrypt"]:
                 else:
                     plain_text = decrypt_aes(args.text, args.key)
                     print("Decrypted:", plain_text)
-                    choice = input("Do you want to copy the decrypted text? [y/n] ").upper()
-                    if choice == "Y":
-                        pyperclip.copy(plain_text)
-                        print("Decrypted text copied to clipboard")
+                    copy_text(plain_text, 'Decrypted text')
             elif args.algo == "des":
                 if args.file:
                     decrypt_file(args.file, args.key, args.algo)
                 else:
                     plain_text = decrypt_des(args.text, args.key)
                     print("Decrypted:", plain_text)
-                    choice = input("Do you want to copy the decrypted text? [y/n] ").upper()
-                    if choice == "Y":
-                        pyperclip.copy(plain_text)
-                        print("Decrypted text copied to clipboard")
+                    copy_text(plain_text, 'Decrypted text')
             elif args.algo == "rsa":
                 if args.file:
                     decrypt_file(args.file, args.key, args.algo)
                 else:
                     plain_text = decrypt_rsa(args.text, args.key)
                     print("Decrypted:", plain_text)
-                    choice = input("Do you want to copy the decrypted text? [y/n] ").upper()
-                    if choice == "Y":
-                        pyperclip.copy(plain_text)
-                        print("Decrypted text copied to clipboard")
+                    copy_text(plain_text, 'Decrypted text')
             elif args.algo == "blowfish":
                 if args.file:
                     decrypt_file(args.file, args.key, args.algo)
                 else:
                     plain_text = decrypt_blowfish(args.text, args.key)
                     print("Decrypted:", plain_text)
-                    choice = input("Do you want to copy the decrypted text? [y/n] ").upper()
-                    if choice == "Y":
-                        pyperclip.copy(plain_text)
-                        print("Decrypted text copied to clipboard")
+                    copy_text(plain_text, 'Decrypted text')
     except Exception as e:
         print("Error:", e)
