@@ -1,0 +1,419 @@
+import argparse
+import pyperclip
+def is_binary(filepath):
+    with open(filepath, 'rb') as f:
+        chunk = f.read(1024)
+        return b'\0' in chunk
+
+
+# AES
+from cryptography.fernet import Fernet
+
+# DES
+from Crypto.Cipher import DES
+from Crypto.Util.Padding import pad, unpad
+
+# Blowfish
+from Crypto.Cipher import Blowfish
+
+# RSA
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import serialization, hashes
+import base64
+import os
+
+# ================= Blowfish =================
+
+def generate_key_blowfish():
+    """
+    Generate a Blowfish key (16 bytes recommended, base64 encoded).
+    """
+    return base64.b64encode(os.urandom(16)).decode()
+
+
+def encrypt_blowfish(text, key_b64, is_binary=False):
+    key = base64.b64decode(key_b64)
+    cipher = Blowfish.new(key, Blowfish.MODE_CBC)
+    iv = cipher.iv
+    padded = pad(text.encode() if not is_binary else text.encode("utf-8"), Blowfish.block_size)
+    encrypted = cipher.encrypt(padded)
+    return base64.b64encode(iv + encrypted).decode()
+    Encrypt a string using Blowfish (CBC mode).
+    :param text: Plain text to encrypt
+    :param key_b64: Blowfish key (base64 encoded)
+    :return: Encrypted text (base64 encoded)
+    """
+    key = base64.b64decode(key_b64)
+    cipher = Blowfish.new(key, Blowfish.MODE_CBC)
+    iv = cipher.iv
+    padded = pad(text.encode(), Blowfish.block_size)
+    encrypted = cipher.encrypt(padded)
+    return base64.b64encode(iv + encrypted).decode()
+
+
+def decrypt_blowfish(cipher_b64, key_b64, is_binary=False):
+    key = base64.b64decode(key_b64)
+    data = base64.b64decode(cipher_b64)
+    iv = data[:8]
+    encrypted = data[8:]
+    cipher = Blowfish.new(key, Blowfish.MODE_CBC, iv)
+    decrypted = unpad(cipher.decrypt(encrypted), Blowfish.block_size)
+    return decrypted.decode() if not is_binary else decrypted.decode("utf-8")
+    Decrypt a Blowfish encrypted string.
+    :param cipher_b64: Encrypted text (base64 encoded)
+    :param key_b64: Blowfish key (base64 encoded)
+    :return: Decrypted plain text
+    """
+    key = base64.b64decode(key_b64)
+    data = base64.b64decode(cipher_b64)
+    iv = data[:8]
+    encrypted = data[8:]
+    cipher = Blowfish.new(key, Blowfish.MODE_CBC, iv)
+    decrypted = unpad(cipher.decrypt(encrypted), Blowfish.block_size)
+    return decrypted.decode()
+
+# ================= AES =================
+
+def generate_key_aes():
+    """
+    Generate a symmetric AES key using Fernet (base64 encoded).
+    """
+    return Fernet.generate_key().decode()
+
+
+def encrypt_aes(text, key, is_binary=False):
+    f = Fernet(key.encode())
+    return f.encrypt(text.encode() if not is_binary else text.encode("utf-8")).decode()
+    Encrypt a string using AES (Fernet).
+    :param text: Plain text to encrypt
+    :param key: AES key (base64 encoded)
+    :return: Encrypted text (base64 encoded)
+    """
+    f = Fernet(key.encode())
+    return f.encrypt(text.encode()).decode()
+
+
+def decrypt_aes(token, key, is_binary=False):
+    f = Fernet(key.encode())
+    decrypted = f.decrypt(token.encode())
+    return decrypted.decode() if not is_binary else decrypted.decode("utf-8")
+    Decrypt an AES encrypted string.
+    :param token: Encrypted text (base64 encoded)
+    :param key: AES key (base64 encoded)
+    :return: Decrypted plain text
+    """
+    f = Fernet(key.encode())
+    return f.decrypt(token.encode()).decode()
+
+# ================= RSA =================
+
+def generate_key_rsa():
+    """
+    Generate an RSA private and public key pair.
+    :return: Tuple (private_key_pem, public_key_pem)
+    """
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
+
+    private_pem = private_key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption()
+    ).decode()
+
+    public_pem = private_key.public_key().public_bytes(
+        serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode()
+
+    return private_pem, public_pem
+
+def encrypt_rsa(text, public_pem):
+    """
+    Encrypt text using RSA public key.
+    :param text: Plain text to encrypt
+    :param public_pem: Public key in PEM format
+    :return: Encrypted text (base64 encoded)
+    """
+    public_key = serialization.load_pem_public_key(public_pem.encode())
+    ciphertext = public_key.encrypt(
+        text.encode(),
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+    return base64.b64encode(ciphertext).decode()
+
+def decrypt_rsa(cipher_b64, private_pem):
+    """
+    Decrypt RSA encrypted base64 string using private key.
+    :param cipher_b64: Encrypted text (base64 encoded)
+    :param private_pem: Private key in PEM format
+    :return: Decrypted plain text
+    """
+    private_key = serialization.load_pem_private_key(private_pem.encode(), password=None)
+    ciphertext = base64.b64decode(cipher_b64.encode())
+    plaintext = private_key.decrypt(
+        ciphertext,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+    return plaintext.decode()
+
+# ================= DES =================
+
+def generate_key_des():
+    """
+    Generate an 8-byte DES key (hex).
+    """
+    return os.urandom(8).hex()
+
+
+def encrypt_des(text, key_hex, is_binary=False):
+    key = bytes.fromhex(key_hex)
+    cipher = DES.new(key, DES.MODE_ECB)
+    padded = pad(text.encode() if not is_binary else text.encode("utf-8"), 8)
+    ct = cipher.encrypt(padded)
+    return ct.hex()
+    cipher = DES.new(key, DES.MODE_ECB)
+    padded_text = pad(text.encode(), 8)
+    ct = cipher.encrypt(padded_text)
+    return ct.hex()
+
+
+def decrypt_des(ciphertext_hex, key_hex, is_binary=False):
+    key = bytes.fromhex(key_hex)
+    cipher = DES.new(key, DES.MODE_ECB)
+    ct = bytes.fromhex(ciphertext_hex)
+    pt = unpad(cipher.decrypt(ct), 8)
+    return pt.decode() if not is_binary else pt.decode("utf-8")
+    cipher = DES.new(key, DES.MODE_ECB)
+    ct = bytes.fromhex(ciphertext_hex)
+    pt = unpad(cipher.decrypt(ct), 8)
+    return pt.decode()
+
+# =================== FILE OPS ===================
+
+def read_file(file):
+    if is_binary(file):
+        with open(file, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    else:
+        with open(file, "r") as f:
+            return f.read()
+
+        with open(file, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    else:
+        with open(file, "r") as f:
+            return f.read()
+
+        return file.read()
+    
+def write_file(file, content):
+    if is_binary(file):
+        with open(file, "wb") as f:
+            f.write(base64.b64decode(content.encode()))
+    else:
+        with open(file, "w") as f:
+            f.write(content)
+
+        with open(file, "wb") as f:
+            f.write(base64.b64decode(content.encode()))
+    else:
+        with open(file, "w") as f:
+            f.write(content)
+
+        file.write(content)
+
+# =================== FILE ENC DEC ===================
+
+def encrypt_file(file, key, algo):
+
+
+    if algo == "aes":
+        enc_text = encrypt_aes(text, key, is_binary=is_bin)
+    elif algo == "des":
+        enc_text = encrypt_des(text, key, is_binary=is_bin)
+    elif algo == "rsa":
+        enc_text = encrypt_rsa(text, key)  # RSA files still not supported
+    elif algo == "blowfish":
+        enc_text = encrypt_blowfish(text, key, is_binary=is_bin)
+
+    out_file = file.replace("_dec_" + algo, "").replace("_enc_" + algo, "") + f"_enc_{algo}"
+    write_file(out_file, enc_text)
+    print(f"Encrypted file saved to {out_file}")
+
+    if algo == "aes":
+        enc_text = encrypt_aes(text, key)
+    elif algo == "des":
+        enc_text = encrypt_des(text, key)
+    elif algo == "rsa":
+        enc_text = encrypt_rsa(text, key)
+    elif algo == "blowfish":
+        enc_text = encrypt_blowfish(text, key)
+
+    out_file = file.replace("_dec_" + algo, "").replace("_enc_" + algo, "") + f"_enc_{algo}"
+    write_file(out_file, enc_text)
+    print(f"Encrypted file saved to {out_file}")
+
+def decrypt_file(file, key, algo):
+
+
+    if algo == "aes":
+        dec_text = decrypt_aes(text, key, is_binary=is_bin)
+    elif algo == "des":
+        dec_text = decrypt_des(text, key, is_binary=is_bin)
+    elif algo == "rsa":
+        dec_text = decrypt_rsa(text, key)
+    elif algo == "blowfish":
+        dec_text = decrypt_blowfish(text, key, is_binary=is_bin)
+
+    out_file = file.replace("_enc_" + algo, "").replace("_dec_" + algo, "") + f"_dec_{algo}"
+    write_file(out_file, dec_text)
+    print(f"Decrypted file saved to {out_file}")
+
+    if algo == "aes":
+        dec_text = decrypt_aes(text, key)
+    elif algo == "des":
+        dec_text = decrypt_des(text, key)
+    elif algo == "rsa":
+        dec_text = decrypt_rsa(text, key)
+    elif algo == "blowfish":
+        dec_text = decrypt_blowfish(text, key)
+
+    out_file = file.replace("_dec_" + algo, "").replace("_enc_" + algo, "") + f"_dec_{algo}"
+    write_file(out_file, dec_text)
+    print(f"Decrypted file saved to {out_file}")
+
+# =================== Helper functions ===================
+
+def copy_text(text1, text2):
+    choice = input('Do you want to copy to the clipboard? [y/n] ')
+    if choice.upper() == 'Y':
+        pyperclip.copy(text1)
+        print(f'{text2} copied to the clipboard')
+
+# =================== CLI Parser ===================
+
+parser = argparse.ArgumentParser(description="Encrypt/Decrypt Tool")
+parser.add_argument("mode", choices=["encrypt", "decrypt", "genkey"], help="Operation mode")
+parser.add_argument("--text", help="Text to encrypt or decrypt")
+parser.add_argument("--file", help="File to encrypt or decrypt")
+parser.add_argument("--algo", required=True, choices=["aes", "des", "rsa", "blowfish"], help="Encryption algorithm to use")
+parser.add_argument("--key", help="Key used for encryption/decryption")
+
+args = parser.parse_args()
+
+# Handle key generation
+if args.mode == "genkey":
+    if args.algo == "aes":
+        key = generate_key_aes()
+        print("Generated Key:", key)
+        copy_text(key, 'Key')
+    elif args.algo == "des":
+        key = generate_key_des()
+        print("Generated Key:", key)
+        copy_text(key, 'Key')
+    elif args.algo == "blowfish":
+        key = generate_key_blowfish()
+        print("Generated Key:", key)
+        copy_text(key, 'Key')
+    elif args.algo == "rsa":
+        priv, pub = generate_key_rsa()
+        print("Private Key:\n", priv)
+        print("\nPublic Key:\n", pub)
+        choice = input("Do you want to copy the key to clipboard? [y/n] ")
+        if choice.upper() == "Y":
+            priv_or_pub = input("Which key you want to copy? [1 for private/2 for public] ").lower()
+            if priv_or_pub == "1":
+                pyperclip.copy(priv)
+                print("Private key copied to clipboard.")
+            elif priv_or_pub == "2":
+                pyperclip.copy(pub)
+                print("Public key copied to clipboard.")
+
+# Handle encryption and decryption
+elif args.mode in ["encrypt", "decrypt"]:
+    if args.algo == "rsa":
+        if args.mode == "encrypt" and not args.key:
+            print("Error: RSA encryption requires public key via --key")
+            exit()
+        elif args.mode == "decrypt" and not args.key:
+            print("Error: RSA decryption requires private key via --key")
+            exit()
+        
+    else:
+        if not (args.text or args.file) or not args.key:
+            print("Error: Either --text or --file and --key are required.")
+            exit()
+        
+
+    try:
+        if args.mode == "encrypt":
+            if args.algo == "aes":
+                if args.file:
+                    encrypt_file(args.file, args.key, args.algo)
+                else:
+                    cipher_text = encrypt_aes(args.text, args.key)
+                    print("Encrypted:", cipher_text)
+                    copy_text(cipher_text, 'Encrypted text')
+            elif args.algo == "des":
+                if args.file:
+                    encrypt_file(args.file, args.key, args.algo)
+                else:
+                    cipher_text = encrypt_des(args.text, args.key)
+                    print("Encrypted:", cipher_text)
+                    copy_text(cipher_text, 'Encrypted text')
+            elif args.algo == "rsa":
+                if args.file:
+                    encrypt_file(args.file, args.key, args.algo)
+                else:
+                    cipher_text = encrypt_rsa(args.text, args.key)
+                    print("Encrypted:", cipher_text)
+                    copy_text(cipher_text, 'Encrypted text')
+            elif args.algo == "blowfish":
+                if args.file:
+                    encrypt_file(args.file, args.key, args.algo)
+                else:
+                    cipher_text = encrypt_blowfish(args.text, args.key)
+                    print("Encrypted:", cipher_text)
+                    copy_text(cipher_text, 'Encrypted text')
+        else:
+            if args.algo == "aes":
+                if args.file:
+                    decrypt_file(args.file, args.key, args.algo)
+                else:
+                    plain_text = decrypt_aes(args.text, args.key)
+                    print("Decrypted:", plain_text)
+                    copy_text(plain_text, 'Decrypted text')
+            elif args.algo == "des":
+                if args.file:
+                    decrypt_file(args.file, args.key, args.algo)
+                else:
+                    plain_text = decrypt_des(args.text, args.key)
+                    print("Decrypted:", plain_text)
+                    copy_text(plain_text, 'Decrypted text')
+            elif args.algo == "rsa":
+                if args.file:
+                    decrypt_file(args.file, args.key, args.algo)
+                else:
+                    plain_text = decrypt_rsa(args.text, args.key)
+                    print("Decrypted:", plain_text)
+                    copy_text(plain_text, 'Decrypted text')
+            elif args.algo == "blowfish":
+                if args.file:
+                    decrypt_file(args.file, args.key, args.algo)
+                else:
+                    plain_text = decrypt_blowfish(args.text, args.key)
+                    print("Decrypted:", plain_text)
+                    copy_text(plain_text, 'Decrypted text')
+    except Exception as e:
+        print("Error:", e)
