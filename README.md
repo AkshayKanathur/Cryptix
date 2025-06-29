@@ -26,13 +26,13 @@ Features :
 
 ✅ Clean output filenames: _enc_algo, _dec_algo
 
-Installation: 
+🧪 Installation
 bash
 Copy
 Edit
 pip install pycryptodome cryptography pyperclip
-Usage Examples : 
-Generate Keys
+🚀 Usage Examples
+🔑 Generate Keys
 bash
 Copy
 Edit
@@ -40,12 +40,13 @@ python cryptix_perfect_final.py genkey --algo aes
 python cryptix_perfect_final.py genkey --algo des
 python cryptix_perfect_final.py genkey --algo rsa
 python cryptix_perfect_final.py genkey --algo blowfish
-\Text Encryption : 
+📝 Text Encryption
 bash
 Copy
 Edit
 python cryptix_perfect_final.py encrypt --text "hello world" --algo aes --key YOUR_AES_KEY
 python cryptix_perfect_final.py decrypt --text ENCRYPTED_TEXT --algo aes --key YOUR_AES_KEY
+
 File Encryption (Text or Binary): 
 bash
 Copy
