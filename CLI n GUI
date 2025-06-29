@@ -1,0 +1,24 @@
+CLI Mode
+Generate a key:
+
+bash
+
+python cryptix_perfect_final.py genkey --algo aes
+Encrypt a file:
+
+bash
+
+python cryptix_perfect_final.py encrypt --file example.png --algo aes --key YOUR_AES_KEY
+Decrypt:
+
+bash
+
+python cryptix_perfect_final.py decrypt --file example_enc_aes --algo aes --key YOUR_AES_KEY
+
+GUI Mode
+Run:
+
+bash
+
+python cryptix_gui.py
+Use the dropdowns and buttons to encrypt/decrypt text or files.
