@@ -9,3 +9,6 @@
    ```bash
    git clone https://github.com/ram53/cryptix.git
    cd cryptix
+
+
+pip install pycryptodome cryptography pyperclip
